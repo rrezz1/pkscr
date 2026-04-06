@@ -6,13 +6,14 @@ FollowUiToEntity.attributes.add('screenEntity', { type: 'entity' })
 // initialize code called once per entity
 FollowUiToEntity.prototype.initialize = function () {
     this.camera = this.cameraEntity.camera;
+    this._screenPos = new pc.Vec3();
 };
 
 // update code called every frame
 FollowUiToEntity.prototype.postUpdate = function (dt) {
     // World space position of target
     const worldPos = this.targetEntity.getPosition();
-    const screenPos = new pc.Vec3();
+    const screenPos = this._screenPos;
 
     // Convert to screen space
     this.camera.worldToScreen(worldPos, screenPos);

@@ -473,6 +473,12 @@ PlayerManager.prototype._returnVec3 = function (vec) {
 };
 
 PlayerManager.prototype.update = function (dt) {
+    if (!this.tableAmountMoveData &&
+        (!this.movingChips || this.movingChips.length === 0) &&
+        (!this.activeFades || this.activeFades.length === 0) &&
+        (!this._activeBetFades || this._activeBetFades.size === 0)) {
+        return;
+    }
     this._updateTableAmountMove(dt);
     this._updateMovingChips(dt);
     this._updateFades(dt);

@@ -896,7 +896,12 @@ PlayersFlowManager.prototype.setPlayerOpacity = function(playerId, isWinner) {
 
 
 PlayersFlowManager.prototype.update = function (dt) {
-  
+    if (!this.shadowfadeTarget &&
+        !this.bckfadeTarget &&
+        (!this.activeFades || this.activeFades.length === 0) &&
+        !this.opacityTimerActive) {
+        return;
+    }
 
     if (this.shadowfadeTarget) {
         this.shadowfadeTime += dt;

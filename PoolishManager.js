@@ -19,15 +19,10 @@ PoolishManager.prototype.initialize = function () {
     this.originalTextHolderPos = 0.835;
     this.moveTextHolderTo = -5.5;
 
-    // Manual update system
+    // Manual update system (driven by app update only when needed)
     this._activeAnims = [];
-    this._lastTime = Date.now();
-    this._manualInterval = setInterval(() => {
-        const now = Date.now();
-        const dt = (now - this._lastTime) / 1000;
-        this._lastTime = now;
-        this._tickAnims(dt);
-    }, 16);
+    this._updateFn = this._updateAnims.bind(this);
+    this._hasUpdateListener = false;
 
     this.app.on('PolishManager:EnableWinnerUi', this.winnerUI, this);
     this.app.on('PolishManager:Company_Name', this.showCompanyName, this);
@@ -37,12 +32,16 @@ PoolishManager.prototype.initialize = function () {
 // Register a frame-by-frame animation function
 PoolishManager.prototype._addAnim = function (fn) {
     this._activeAnims.push(fn);
+    this._ensureUpdateListener();
     return fn;
 };
 
 PoolishManager.prototype._removeAnim = function (fn) {
     const idx = this._activeAnims.indexOf(fn);
     if (idx !== -1) this._activeAnims.splice(idx, 1);
+    if (this._activeAnims.length === 0) {
+        this._removeUpdateListener();
+    }
 };
 
 PoolishManager.prototype._tickAnims = function (dt) {
@@ -50,6 +49,26 @@ PoolishManager.prototype._tickAnims = function (dt) {
     for (let i = 0; i < anims.length; i++) {
         anims[i](dt);
     }
+};
+
+PoolishManager.prototype._updateAnims = function (dt) {
+    if (this._activeAnims.length === 0) {
+        this._removeUpdateListener();
+        return;
+    }
+    this._tickAnims(dt);
+};
+
+PoolishManager.prototype._ensureUpdateListener = function () {
+    if (this._hasUpdateListener) return;
+    this.app.on('update', this._updateFn);
+    this._hasUpdateListener = true;
+};
+
+PoolishManager.prototype._removeUpdateListener = function () {
+    if (!this._hasUpdateListener) return;
+    this.app.off('update', this._updateFn);
+    this._hasUpdateListener = false;
 };
 
 PoolishManager.prototype.showCompanyName = function (position) {
@@ -242,6 +261,7 @@ PoolishManager.prototype.fadeEntity = function (entity, from, to, duration, onCo
 PoolishManager.prototype.resetScript = function () {
     // Kill every in-flight animation immediately
     this._activeAnims = [];
+    this._removeUpdateListener();
 
     for (let i = 0; i < this.company_Name.length; i++) {
         this.company_Name[i].enabled = false;
@@ -283,6 +303,7 @@ PoolishManager.prototype._resetWinnerText = function (item) {
 PoolishManager.prototype.resetScript = function () {
     // Kill every in-flight animation first
     this._activeAnims = [];
+    this._removeUpdateListener();
 
     for (let i = 0; i < this.company_Name.length; i++) {
         this.company_Name[i].enabled = false;
@@ -347,4 +368,8 @@ PoolishManager.prototype._resetTextHolderPosition = function (item) {
     } else {
         item.textHolder.setLocalPosition(currentPos.x, originalY, currentPos.z);
     }
+};
+
+PoolishManager.prototype.onDestroy = function () {
+    this._removeUpdateListener();
 };

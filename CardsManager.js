@@ -80,17 +80,13 @@ var CardsManager = pc.createScript('cardsManager');
         this.currentPhase = 'idle';
         this.phaseStarted = false;
 
-        this.lastTime = Date.now();
-
-        this.backgroundInterval = setInterval(() => {
-            const now = Date.now();
-            const dt = (now - this.lastTime) / 1000;
-            this.lastTime = now;
-
+        // PERF: use app update instead of a manual 16ms interval
+        this._updateFn = (dt) => {
             if (this.isMoving) {
                 this.manualUpdate(dt);
             }
-        }, 16);
+        };
+        this.app.on('update', this._updateFn);
 
         this.initializeEventsManager();
     };
@@ -1792,19 +1788,12 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
         this.totalHoleCardsExpected = 0;
         this._pendingHoleCardRotate = false;
 
-        if (this.backgroundInterval) {
-            clearInterval(this.backgroundInterval);
-            this.backgroundInterval = null;
-        }
-
         this.removeEvents();
         this.destroyAllCards();
 
         this.currentPhase = "idle";
         this.currentMovingIndex = 0;
         this.currentPlayerIndex = 0;
-        this.lastTime = Date.now();
-
         this.firstCards = new Array(9);
         this.secondCards = new Array(9);
         this.thirdCards = new Array(9);
@@ -1822,16 +1811,6 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
         this.phaseStarted = false;
 
         this.initializeEventsManager();
-
-        this.backgroundInterval = setInterval(() => {
-            const now = Date.now();
-            const dt = (now - this.lastTime) / 1000;
-            this.lastTime = now;
-
-            if (this.isMoving) {
-                this.manualUpdate(dt);
-            }
-        }, 16);
     };
 
     CardsManager.prototype.destroyAllCards = function () {
@@ -1886,4 +1865,11 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
         this.app.off('CardsManager:DealCommunityCards', this.queueCommunityCardDeal, this);
         this.app.off('CardsManager:DealHoleCards_withoutAnimation', this.instantHoleCardDeal, this);
         this.app.off('CardsManager:DealCommunityCards_withoutAnimaton', this.instantCommunityCardDeal, this);
+    };
+
+    CardsManager.prototype.onDestroy = function () {
+        if (this._updateFn) {
+            this.app.off('update', this._updateFn);
+            this._updateFn = null;
+        }
     };

@@ -29,6 +29,7 @@ FollowWorldTarget.prototype.initialize = function() {
     // Store previous positions to detect changes
     this.previousUIPositions = [];
     this.previousEnabledStates = [];
+    this._screenPos = new pc.Vec3();
     
     // Initialize arrays with default values
     for (let i = 0; i < this.uiPos.length; i++) {
@@ -42,7 +43,7 @@ FollowWorldTarget.prototype.update = function(dt) {
 };
 
 FollowWorldTarget.prototype._updatePos = function(dt) {
-    const screenPos = new pc.Vec3();
+    const screenPos = this._screenPos;
     const pixelRatio = this.app.graphicsDevice.maxPixelRatio;
     
     // Track if any position or enabled state changed
@@ -117,22 +118,21 @@ FollowWorldTarget.prototype._updatePos = function(dt) {
                 normalizedX = (screenX / (deviceWidth / 2)) - 1;
                 normalizedY = 1 - (screenY / (deviceHeight / 2));
 
-                const uiPosition = new pc.Vec3(normalizedX, normalizedY, 0);
+                const uiX = normalizedX;
+                const uiY = normalizedY;
                 
                 // Check if position changed significantly
                 const previousPos = this.previousUIPositions[i];
-                const dx = Math.abs(uiPosition.x - previousPos.x);
-                const dy = Math.abs(uiPosition.y - previousPos.y);
-                const dz = Math.abs(uiPosition.z - previousPos.z);
-                
-        
-                // if (dx > this.positionThreshold || dy > this.positionThreshold || dz > this.positionThreshold) {
+                const dx = Math.abs(uiX - previousPos.x);
+                const dy = Math.abs(uiY - previousPos.y);
+                const dz = Math.abs(0 - previousPos.z);
+
+                if (dx > this.positionThreshold || dy > this.positionThreshold || dz > this.positionThreshold) {
                     anythingChanged = true;
-                    previousPos.copy(uiPosition);
-                    this.app.fire('PLayerManager:Position_UI_Player_Cards');
-                // }
-                
-                uiEntity.setPosition(uiPosition);
+                    previousPos.set(uiX, uiY, 0);
+                }
+
+                uiEntity.setPosition(uiX, uiY, 0);
             } else {
                 uiEntity.element.enabled = false;
             }
