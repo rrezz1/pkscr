@@ -3,14 +3,34 @@ var FollowUiToEntity = pc.createScript('followUiToEntity');
 FollowUiToEntity.attributes.add('cameraEntity', { type: 'entity' })
 FollowUiToEntity.attributes.add('targetEntity', { type: 'entity' })
 FollowUiToEntity.attributes.add('screenEntity', { type: 'entity' })
+FollowUiToEntity.attributes.add('positionThreshold', {
+    type: 'number',
+    default: 0.001,
+    title: 'Position Change Threshold',
+    description: 'Minimum position change required to move UI'
+});
+FollowUiToEntity.attributes.add('updateIntervalMs', {
+    type: 'number',
+    default: 0,
+    title: 'Update Interval (ms)',
+    description: '0 = every frame, >0 = throttle updates'
+});
 // initialize code called once per entity
 FollowUiToEntity.prototype.initialize = function () {
     this.camera = this.cameraEntity.camera;
     this._screenPos = new pc.Vec3();
+    this._prevPos = new pc.Vec3();
+    this._prevEnabled = false;
+    this._accumMs = 0;
 };
 
 // update code called every frame
 FollowUiToEntity.prototype.postUpdate = function (dt) {
+    if (this.updateIntervalMs > 0) {
+        this._accumMs += dt * 1000;
+        if (this._accumMs < this.updateIntervalMs) return;
+        this._accumMs = 0;
+    }
     // World space position of target
     const worldPos = this.targetEntity.getPosition();
     const screenPos = this._screenPos;
@@ -20,7 +40,10 @@ FollowUiToEntity.prototype.postUpdate = function (dt) {
 
     // Check if the entity is in front of the camera
     if (screenPos.z > 0) {
-        this.entity.element.enabled = true;
+        if (!this._prevEnabled) {
+            this.entity.element.enabled = true;
+            this._prevEnabled = true;
+        }
 
         // Take pixel ratio into account
         const pixelRatio = this.app.graphicsDevice.maxPixelRatio;
@@ -33,9 +56,17 @@ FollowUiToEntity.prototype.postUpdate = function (dt) {
         const y = ((1 - (screenPos.y / device.height)) * 2) - 1;
 
         // Elements are positioned between -1 and 1 on both axes
-        this.entity.setPosition(x, y, 0);
+        const dx = Math.abs(x - this._prevPos.x);
+        const dy = Math.abs(y - this._prevPos.y);
+        if (dx > this.positionThreshold || dy > this.positionThreshold) {
+            this.entity.setPosition(x, y, 0);
+            this._prevPos.set(x, y, 0);
+        }
     } else {
-        this.entity.element.enabled = false;
+        if (this._prevEnabled) {
+            this.entity.element.enabled = false;
+            this._prevEnabled = false;
+        }
     }
 };
 

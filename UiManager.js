@@ -54,6 +54,11 @@ UiManager.prototype.initialize = function () {
     this.currentChip = null;
     this.chipAnimState = null;
     this.chipScale = new pc.Vec3(1, 1, 1);
+    this.minimumChipsGoInAnim = 0.7;
+    this.maximumChipsGoInAnim = 1.4;
+    this._chipScaleDown = new pc.Vec3(this.minimumChipsGoInAnim, this.minimumChipsGoInAnim, this.minimumChipsGoInAnim);
+    this._chipScaleUp = new pc.Vec3(this.maximumChipsGoInAnim, this.maximumChipsGoInAnim, this.maximumChipsGoInAnim);
+    this._chipScaleNormal = new pc.Vec3(1, 1, 1);
 
 
     this.check_Button.element.on('click', this.debounce(this.on_check_Button.bind(this), 300), this);
@@ -160,12 +165,9 @@ UiManager.prototype.startChipAnimation = function (chipEntity) {
 UiManager.prototype.update = function (dt) {
     if (!this.currentChip || !this.chipAnimState) return;
 
-    this.minimumChipsGoInAnim = 0.7;
-    this.maximumChipsGoInAnim = 1.4;
-
     let speed = 10;
     if (this.chipAnimState === "down") {
-        this.chipScale.lerp(this.chipScale, new pc.Vec3(this.minimumChipsGoInAnim, this.minimumChipsGoInAnim, this.minimumChipsGoInAnim), dt * speed);
+        this.chipScale.lerp(this.chipScale, this._chipScaleDown, dt * speed);
         this.currentChip.setLocalScale(this.chipScale);
 
         if (this.chipScale.x <= (this.minimumChipsGoInAnim + 0.01)) {
@@ -173,7 +175,7 @@ UiManager.prototype.update = function (dt) {
         }
     }
     else if (this.chipAnimState === "up") {
-        this.chipScale.lerp(this.chipScale, new pc.Vec3(this.maximumChipsGoInAnim, this.maximumChipsGoInAnim, this.maximumChipsGoInAnim), dt * speed);
+        this.chipScale.lerp(this.chipScale, this._chipScaleUp, dt * speed);
         this.currentChip.setLocalScale(this.chipScale);
 
         if (this.chipScale.x >= (this.maximumChipsGoInAnim - 0.01)) {
@@ -181,7 +183,7 @@ UiManager.prototype.update = function (dt) {
         }
     }
     else if (this.chipAnimState === "normal") {
-        this.chipScale.lerp(this.chipScale, new pc.Vec3(1, 1, 1), dt * speed);
+        this.chipScale.lerp(this.chipScale, this._chipScaleNormal, dt * speed);
         this.currentChip.setLocalScale(this.chipScale);
 
         if (Math.abs(this.chipScale.x - 1) < 0.01) {

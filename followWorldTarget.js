@@ -24,12 +24,30 @@ FollowWorldTarget.attributes.add('positionThreshold', {
     title: 'Position Change Threshold',
     description: 'Minimum position change required to trigger the event'
 });
+FollowWorldTarget.attributes.add('updateIntervalMs', {
+    type: 'number',
+    default: 0,
+    title: 'Update Interval (ms)',
+    description: '0 = every frame, >0 = throttle updates'
+});
 
 FollowWorldTarget.prototype.initialize = function() {
     // Store previous positions to detect changes
     this.previousUIPositions = [];
     this.previousEnabledStates = [];
     this._screenPos = new pc.Vec3();
+    this._accumMs = 0;
+    this._boundsCache = {
+        useScreen: false,
+        w: -1,
+        h: -1,
+        ax: -1,
+        ay: -1,
+        xminus: -1,
+        xplus: 1,
+        yminus: -1,
+        yplus: 1
+    };
     
     // Initialize arrays with default values
     for (let i = 0; i < this.uiPos.length; i++) {
@@ -39,7 +57,82 @@ FollowWorldTarget.prototype.initialize = function() {
 };
 
 FollowWorldTarget.prototype.update = function(dt) {
+    if (this.updateIntervalMs > 0) {
+        this._accumMs += dt * 1000;
+        if (this._accumMs < this.updateIntervalMs) return;
+        this._accumMs = 0;
+    }
     this._updatePos();
+};
+
+FollowWorldTarget.prototype._updateBounds = function() {
+    // Default bounds
+    let xminus = -1;
+    let xplus = 1;
+    let yminus = -1;
+    let yplus = 1;
+
+    if (this.uiHolder && this.uiHolder.element) {
+        if (this.uiHolder.screen) {
+            const screenRes = this.uiHolder.screen.resolution;
+            xminus = -screenRes.x / 2;
+            xplus = screenRes.x / 2;
+            yminus = -screenRes.y / 2;
+            yplus = screenRes.y / 2;
+        } else if (this.uiHolder.element.anchor) {
+            const deviceWidth = this.app.graphicsDevice.width;
+            const deviceHeight = this.app.graphicsDevice.height;
+            const anchor = this.uiHolder.element.anchor;
+            xminus = -deviceWidth * anchor.x;
+            xplus = deviceWidth * (1 - anchor.x);
+            yminus = -deviceHeight * anchor.y;
+            yplus = deviceHeight * (1 - anchor.y);
+        }
+    }
+
+    this._boundsCache.xminus = xminus;
+    this._boundsCache.xplus = xplus;
+    this._boundsCache.yminus = yminus;
+    this._boundsCache.yplus = yplus;
+};
+
+FollowWorldTarget.prototype._ensureBounds = function() {
+    if (!this.uiHolder || !this.uiHolder.element) {
+        if (this._boundsCache.useScreen !== false) {
+            this._boundsCache.useScreen = false;
+            this._updateBounds();
+        }
+        return;
+    }
+
+    if (this.uiHolder.screen) {
+        const screenRes = this.uiHolder.screen.resolution;
+        if (!this._boundsCache.useScreen ||
+            this._boundsCache.w !== screenRes.x ||
+            this._boundsCache.h !== screenRes.y) {
+            this._boundsCache.useScreen = true;
+            this._boundsCache.w = screenRes.x;
+            this._boundsCache.h = screenRes.y;
+            this._updateBounds();
+        }
+        return;
+    }
+
+    const anchor = this.uiHolder.element.anchor;
+    const deviceWidth = this.app.graphicsDevice.width;
+    const deviceHeight = this.app.graphicsDevice.height;
+    if (this._boundsCache.useScreen ||
+        this._boundsCache.w !== deviceWidth ||
+        this._boundsCache.h !== deviceHeight ||
+        this._boundsCache.ax !== anchor.x ||
+        this._boundsCache.ay !== anchor.y) {
+        this._boundsCache.useScreen = false;
+        this._boundsCache.w = deviceWidth;
+        this._boundsCache.h = deviceHeight;
+        this._boundsCache.ax = anchor.x;
+        this._boundsCache.ay = anchor.y;
+        this._updateBounds();
+    }
 };
 
 FollowWorldTarget.prototype._updatePos = function(dt) {
@@ -49,31 +142,12 @@ FollowWorldTarget.prototype._updatePos = function(dt) {
     // Track if any position or enabled state changed
     let anythingChanged = false;
     
-    // Get uiHolder boundaries
-    let uiHolder_xminus = -1;
-    let uiHolder_xplus = 1;
-    let uiHolder_yminus = -1;
-    let uiHolder_yplus = 1;
-    
-    if (this.uiHolder && this.uiHolder.element) {
-        if (this.uiHolder.screen) {
-            const screenRes = this.uiHolder.screen.resolution;
-            uiHolder_xminus = -screenRes.x / 2;
-            uiHolder_xplus = screenRes.x / 2;
-            uiHolder_yminus = -screenRes.y / 2;
-            uiHolder_yplus = screenRes.y / 2;
-        }
-        else if (this.uiHolder.element.anchor) {
-            const deviceWidth = this.app.graphicsDevice.width;
-            const deviceHeight = this.app.graphicsDevice.height;
-            const anchor = this.uiHolder.element.anchor;
-            
-            uiHolder_xminus = -deviceWidth * anchor.x;
-            uiHolder_xplus = deviceWidth * (1 - anchor.x);
-            uiHolder_yminus = -deviceHeight * anchor.y;
-            uiHolder_yplus = deviceHeight * (1 - anchor.y);
-        }
-    }
+    // Get uiHolder boundaries (cached)
+    this._ensureBounds();
+    const uiHolder_xminus = this._boundsCache.xminus;
+    const uiHolder_xplus = this._boundsCache.xplus;
+    const uiHolder_yminus = this._boundsCache.yminus;
+    const uiHolder_yplus = this._boundsCache.yplus;
 
     for (let i = 0; i < this.worldPos.length; i++) {
         const target = this.worldPos[i];

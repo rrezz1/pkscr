@@ -79,6 +79,11 @@ var CardsManager = pc.createScript('cardsManager');
 
         this.currentPhase = 'idle';
         this.phaseStarted = false;
+        // PERF: reuse temp math objects to reduce GC churn during animations
+        this._tmpVec3A = new pc.Vec3();
+        this._tmpVec3B = new pc.Vec3();
+        this._tmpVec3C = new pc.Vec3();
+        this._tmpQuatA = new pc.Quat();
 
         // PERF: use app update instead of a manual 16ms interval
         this._updateFn = (dt) => {
@@ -1055,6 +1060,8 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
 
             let elapsed = 0;
             let phase = (!startPos.equals(targetPos)) ? 'moveToPoint' : 'up';
+            const tmpPos = new pc.Vec3();
+            const tmpRot = new pc.Vec3();
 
             const update = (dt) => {
                 elapsed += dt;
@@ -1062,10 +1069,10 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
 
                 if (phase === 'moveToPoint') {
                     t = Math.min(elapsed / this.moveToPointDuration, 1);
-                    const newPos = new pc.Vec3().lerp(startPos, targetPos, t);
-                    const newRot = new pc.Vec3().lerp(startRot, targetRot, t);
-                    card.setLocalPosition(newPos);
-                    card.setLocalEulerAngles(newRot);
+                    tmpPos.lerp(startPos, targetPos, t);
+                    tmpRot.lerp(startRot, targetRot, t);
+                    card.setLocalPosition(tmpPos);
+                    card.setLocalEulerAngles(tmpRot);
                     if (t >= 0.8) {
                         elapsed = 0;
                         phase = 'up';
@@ -1179,6 +1186,8 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
             const scaleDuration = 0.5;
             let elapsed = 0;
             const startScales = cards.map(c => c ? c.getLocalScale().clone() : new pc.Vec3(0, 0, 0));
+            const zeroScale = new pc.Vec3(0, 0, 0);
+            const tmpScale = new pc.Vec3();
 
             const updateScale = (dt) => {
                 elapsed += dt;
@@ -1188,9 +1197,8 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
                     const card = cards[i];
                     if (!card || card._destroyed) continue;
 
-                    const newScale = new pc.Vec3();
-                    newScale.lerp(startScales[i], new pc.Vec3(0, 0, 0), t);
-                    card.setLocalScale(newScale);
+                    tmpScale.lerp(startScales[i], zeroScale, t);
+                    card.setLocalScale(tmpScale);
                 }
 
                 if (t >= 1) {
@@ -1228,15 +1236,15 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
             const moveDuration = 0.5;
             let elapsed = 0;
             const startPositions = cards.map(c => c.getLocalPosition().clone());
+            const tmpPos = new pc.Vec3();
 
             const updateFold = (dt) => {
                 elapsed += dt;
                 const t = Math.min(elapsed / moveDuration, 1);
 
                 for (let i = 0; i < cards.length; i++) {
-                    const newPos = new pc.Vec3();
-                    newPos.lerp(startPositions[i], targetPos, t);
-                    cards[i].setLocalPosition(newPos);
+                    tmpPos.lerp(startPositions[i], targetPos, t);
+                    cards[i].setLocalPosition(tmpPos);
                 }
 
                 if (t >= 1) {
@@ -1282,6 +1290,7 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
             const moveDuration = 0.5;
             let elapsed = 0;
             const startPositions = cards.map(c => c.getLocalPosition().clone());
+            const tmpPos = new pc.Vec3();
 
             const updateFold = (dt) => {
                 // Abort if new hand started
@@ -1295,9 +1304,8 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
 
                 for (let i = 0; i < cards.length; i++) {
                     if (!cards[i] || cards[i]._destroyed) continue;
-                    const newPos = new pc.Vec3();
-                    newPos.lerp(startPositions[i], targetPos, t);
-                    cards[i].setLocalPosition(newPos);
+                    tmpPos.lerp(startPositions[i], targetPos, t);
+                    cards[i].setLocalPosition(tmpPos);
                 }
 
                 if (t >= 1) {
@@ -1336,15 +1344,15 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
         if (allCards.length === 0) return;
 
         const startPositions = allCards.map(c => c.getLocalPosition().clone());
+        const tmpPos = new pc.Vec3();
 
         const updateCollect = (dt) => {
             elapsed += dt;
             let t = Math.min(elapsed / moveDuration, 1);
 
             for (let i = 0; i < allCards.length; i++) {
-                let newPos = new pc.Vec3();
-                newPos.lerp(startPositions[i], targetPos, t);
-                allCards[i].setLocalPosition(newPos);
+                tmpPos.lerp(startPositions[i], targetPos, t);
+                allCards[i].setLocalPosition(tmpPos);
             }
 
             if (t >= 1) {
@@ -1545,13 +1553,16 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
             cardData._hasStartedMoving = true;
         }
 
-        let newPos = new pc.Vec3().lerp(currentPos, targetPos, alpha);
+        const newPos = this._tmpVec3A;
+        newPos.lerp(currentPos, targetPos, alpha);
         card.setLocalPosition(newPos);
 
-        let newRot = new pc.Quat().slerp(currentRot, targetRot, alpha);
+        const newRot = this._tmpQuatA;
+        newRot.slerp(currentRot, targetRot, alpha);
         card.setLocalRotation(newRot);
 
-        let newScale = new pc.Vec3().lerp(currentScale, targetScale, alpha);
+        const newScale = this._tmpVec3B;
+        newScale.lerp(currentScale, targetScale, alpha);
         card.setLocalScale(newScale);
 
         if (this.isCardAtTarget(cardData)) {
@@ -1586,13 +1597,16 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
             cardData._hasStartedMoving = true;
         }
 
-        let newPos = new pc.Vec3().lerp(currentPos, targetPos, alpha);
+        const newPos = this._tmpVec3A;
+        newPos.lerp(currentPos, targetPos, alpha);
         card.setLocalPosition(newPos);
 
-        let newRot = new pc.Quat().slerp(currentRot, targetRot, alpha);
+        const newRot = this._tmpQuatA;
+        newRot.slerp(currentRot, targetRot, alpha);
         card.setLocalRotation(newRot);
 
-        let newScale = new pc.Vec3().lerp(currentScale, targetScale, alpha);
+        const newScale = this._tmpVec3B;
+        newScale.lerp(currentScale, targetScale, alpha);
         card.setLocalScale(newScale);
 
         let posComplete = currentPos.distance(targetPos) < 0.05;
@@ -1706,6 +1720,9 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
         const startScale = card.getLocalScale().clone();
 
         let elapsed = 0;
+        const tmpPos = new pc.Vec3();
+        const tmpRot = new pc.Quat();
+        const tmpScale = new pc.Vec3();
 
         const updateMovement = (dt) => {
             elapsed += dt;
@@ -1713,17 +1730,14 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
 
             const easedT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
-            const newPos = new pc.Vec3();
-            newPos.lerp(startPos, targetPos, easedT);
-            card.setLocalPosition(newPos);
+            tmpPos.lerp(startPos, targetPos, easedT);
+            card.setLocalPosition(tmpPos);
 
-            const newRot = new pc.Quat();
-            newRot.slerp(startRot, targetRot, easedT);
-            card.setLocalRotation(newRot);
+            tmpRot.slerp(startRot, targetRot, easedT);
+            card.setLocalRotation(tmpRot);
 
-            const newScale = new pc.Vec3();
-            newScale.lerp(startScale, targetScale, easedT);
-            card.setLocalScale(newScale);
+            tmpScale.lerp(startScale, targetScale, easedT);
+            card.setLocalScale(tmpScale);
 
             if (t >= 1) {
                 card.setLocalPosition(targetPos);
