@@ -58,9 +58,16 @@ BalanceManager.prototype.initialize = function () {
 
     this.updateChipsUI();
 };
+BalanceManager.prototype._setTextIfChanged = function (element, text) {
+    if (!element) return;
+    const next = text !== undefined && text !== null ? String(text) : '';
+    if (element.text !== next) {
+        element.text = next;
+    }
+};
 BalanceManager.prototype.defineYoureBlance = function (yourBalanceValue) {
     let fixYourBalanceValue = yourBalanceValue / 100;
-    this.youreBalance.element.text = 'Your Balance: ' + fixYourBalanceValue;
+    this._setTextIfChanged(this.youreBalance.element, 'Your Balance: ' + fixYourBalanceValue);
 }
 BalanceManager.prototype.defineValue = function (minBetValue, maxBetValue) {
     let fixMinBetValue = minBetValue/ 100;
@@ -100,13 +107,13 @@ BalanceManager.prototype.updateChipsUI = function () {
     var fillRatio = effectiveRange > 0 ? currentPosition / effectiveRange : 0;
     
     if (this.show_pot && this.show_pot.element) {
-        this.show_pot.element.text = this.currentBet;
+        this._setTextIfChanged(this.show_pot.element, this.currentBet);
     }
     if (this.show_Minpot && this.show_Minpot.element) {
-        this.show_Minpot.element.text = this.minBet;
+        this._setTextIfChanged(this.show_Minpot.element, this.minBet);
     }
     if (this.show_Maxpot && this.show_Maxpot.element) {
-        this.show_Maxpot.element.text = this.maxBet;
+        this._setTextIfChanged(this.show_Maxpot.element, this.maxBet);
     }
 
     if (this.scrollBar && (this.scrollBar.scrollbar || this.scrollBar.slider)) {
@@ -169,7 +176,7 @@ BalanceManager.prototype.resetAddBalance = function () {
     }
 
     if (this.show_Minpot && this.show_Minpot.element) {
-        this.show_Minpot.element.text = this.minBet;
+        this._setTextIfChanged(this.show_Minpot.element, this.minBet);
     }
 };
 

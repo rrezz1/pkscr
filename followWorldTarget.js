@@ -26,9 +26,27 @@ FollowWorldTarget.attributes.add('positionThreshold', {
 });
 FollowWorldTarget.attributes.add('updateIntervalMs', {
     type: 'number',
-    default: 0,
+    default: 50,
     title: 'Update Interval (ms)',
     description: '0 = every frame, >0 = throttle updates'
+});
+FollowWorldTarget.attributes.add('idleTimeoutMs', {
+    type: 'number',
+    default: 2000,
+    title: 'Idle Timeout (ms)',
+    description: 'After this idle time, switch to idle update interval'
+});
+FollowWorldTarget.attributes.add('idleUpdateIntervalMs', {
+    type: 'number',
+    default: 250,
+    title: 'Idle Update Interval (ms)',
+    description: 'Update frequency while idle'
+});
+FollowWorldTarget.attributes.add('fireIntervalMs', {
+    type: 'number',
+    default: 100,
+    title: 'Fire Interval (ms)',
+    description: 'Minimum interval between app.fire calls'
 });
 
 FollowWorldTarget.prototype.initialize = function() {
@@ -37,6 +55,9 @@ FollowWorldTarget.prototype.initialize = function() {
     this.previousEnabledStates = [];
     this._screenPos = new pc.Vec3();
     this._accumMs = 0;
+    this._fireAccumMs = 0;
+    this._idleElapsedMs = 0;
+    this._isIdle = false;
     this._boundsCache = {
         useScreen: false,
         w: -1,
@@ -57,12 +78,31 @@ FollowWorldTarget.prototype.initialize = function() {
 };
 
 FollowWorldTarget.prototype.update = function(dt) {
-    if (this.updateIntervalMs > 0) {
-        this._accumMs += dt * 1000;
-        if (this._accumMs < this.updateIntervalMs) return;
+    const dtMs = dt * 1000;
+    const baseInterval = this.updateIntervalMs > 0 ? this.updateIntervalMs : 0;
+    const idleInterval = this.idleUpdateIntervalMs > 0 ? this.idleUpdateIntervalMs : baseInterval;
+    const effectiveInterval = this._isIdle ? idleInterval : baseInterval;
+
+    if (effectiveInterval > 0) {
+        this._accumMs += dtMs;
+        if (this._accumMs < effectiveInterval) return;
         this._accumMs = 0;
     }
-    this._updatePos();
+    if (this.fireIntervalMs > 0) {
+        this._fireAccumMs += dtMs;
+    }
+    const changed = this._updatePos();
+    if (this.idleTimeoutMs > 0) {
+        if (changed) {
+            this._idleElapsedMs = 0;
+            this._isIdle = false;
+        } else {
+            this._idleElapsedMs += dtMs;
+            if (!this._isIdle && this._idleElapsedMs >= this.idleTimeoutMs) {
+                this._isIdle = true;
+            }
+        }
+    }
 };
 
 FollowWorldTarget.prototype._updateBounds = function() {
@@ -214,6 +254,10 @@ FollowWorldTarget.prototype._updatePos = function(dt) {
     }
     
     if (anythingChanged) {
-        this.app.fire('PLayerManager:Position_UI_Player_Cards');
+        if (this.fireIntervalMs <= 0 || this._fireAccumMs >= this.fireIntervalMs) {
+            this.app.fire('PLayerManager:Position_UI_Player_Cards');
+            this._fireAccumMs = 0;
+        }
     }
+    return anythingChanged;
 };

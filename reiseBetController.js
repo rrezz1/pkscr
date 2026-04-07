@@ -43,6 +43,13 @@ ReiseBetController.prototype.initialize = function () {
 
     this.updateChipsUI();
 };
+ReiseBetController.prototype._setTextIfChanged = function (element, text) {
+    if (!element) return;
+    const next = text !== undefined && text !== null ? String(text) : '';
+    if (element.text !== next) {
+        element.text = next;
+    }
+};
 
 ReiseBetController.prototype.updateValuesForMainUserThatCanBet = function (maxBetValue, minBetValue) {
     // let fixMaxBetValue = 
@@ -108,10 +115,10 @@ ReiseBetController.prototype.updateChipsUI = function () {
     }
 
     if (this.show_pot && this.show_pot.element) {
-        this.show_pot.element.text = this.currentBet + " / " + this.maxBet;
+        this._setTextIfChanged(this.show_pot.element, this.currentBet + " / " + this.maxBet);
     }
     if (this.show_Minpot && this.show_Minpot.element) {
-        this.show_Minpot.element.text = this.minBet;
+        this._setTextIfChanged(this.show_Minpot.element, this.minBet);
     }
 
     if (this.scrollBar && (this.scrollBar.scrollbar || this.scrollBar.slider)) {
@@ -148,7 +155,7 @@ ReiseBetController.prototype.resetRaiseUI = function () {
     }
 
     if (this.show_Minpot && this.show_Minpot.element) {
-        this.show_Minpot.element.text = this.minBet;
+        this._setTextIfChanged(this.show_Minpot.element, this.minBet);
     }
 };
 
@@ -197,7 +204,7 @@ ReiseBetController.prototype.on_confirm_Button = function () {
     this.updateChipsUI();
 };
 ReiseBetController.prototype.fixTextOnRaisePopUP = function (isItRaise) {
-    this.raise_Bet_Text.element.text = isItRaise?"Raise":"Bet";
+    this._setTextIfChanged(this.raise_Bet_Text.element, isItRaise ? "Raise" : "Bet");
 }
 ReiseBetController.prototype.raiseState = function (isFromRaise) {
     this.didEventCalledFromRaise = isFromRaise;

@@ -189,6 +189,13 @@ PlayerManager.prototype._setupEventListeners = function () {
     this.app.on('DeviceDetector:DeviceType', this.checkDeviceToRescale, this);
 
 };
+PlayerManager.prototype._setTextIfChanged = function (element, text) {
+    if (!element) return;
+    const next = text !== undefined && text !== null ? String(text) : '';
+    if (element.text !== next) {
+        element.text = next;
+    }
+};
 PlayerManager.prototype.defineIsUser4Playing = function (isUser4Playing) {
     this.isUser4InGame = isUser4Playing;
 
@@ -409,7 +416,7 @@ PlayerManager.prototype._updatePlayerBetUIAfterActed = function (playerIndex, be
             _sasia_e_bastit.element.opacity = 0;
         }
 
-        _sasia_e_bastit.element.text = betAmount.toString();
+        this._setTextIfChanged(_sasia_e_bastit.element, betAmount.toString());
 
         this._betTextFadeTo(_sasia_e_bastit, _sasia_e_bastit.element.opacity, 1, 0.3, null);
     }
@@ -1219,9 +1226,12 @@ PlayerManager.prototype._clearAllInStatus = function (playerIndex) {
         //to normal
         const playerInfo = this.playersInfo?.[playerIndex];
         if (playerInfo?.balance !== undefined) {
-            binanceEntity.element.text = this._formatBinanceValue(String(playerInfo.balance));
+            this._setTextIfChanged(
+                binanceEntity.element,
+                this._formatBinanceValue(String(playerInfo.balance))
+            );
         } else {
-            binanceEntity.element.text = '';
+            this._setTextIfChanged(binanceEntity.element, '');
         }
 
         //color to white
@@ -1260,7 +1270,10 @@ PlayerManager.prototype._syncAllInLock = function (index, isallin) {
         if (binanceEntity?.element) {
             const playerInfo = this.playersInfo?.[index];
             if (playerInfo?.balance !== undefined) {
-                binanceEntity.element.text = this._formatBinanceValue(String(playerInfo.balance));
+                this._setTextIfChanged(
+                    binanceEntity.element,
+                    this._formatBinanceValue(String(playerInfo.balance))
+                );
             }
             binanceEntity.element.color = new pc.Color(1, 1, 1);
 
@@ -1412,10 +1425,13 @@ PlayerManager.prototype._updatePlayerInfoTextPlayerSeated = function (positionDa
         const nameLength = name.length;
 
         if (positionData.altTextName?.element) {
-            positionData.altTextName.element.text = name;
+            this._setTextIfChanged(positionData.altTextName.element, name);
         }
 
-        positionData.name.element.text = nameLength > 12 ? name.slice(0, 12) + '...' : name;
+        this._setTextIfChanged(
+            positionData.name.element,
+            nameLength > 12 ? name.slice(0, 12) + '...' : name
+        );
 
         const needsHover = nameLength > 12;
 
@@ -1468,10 +1484,13 @@ PlayerManager.prototype._updatePlayerInfoText = function (positionData, playerIn
         const nameLength = name.length;
 
         if (positionData.altTextName?.element) {
-            positionData.altTextName.element.text = name;
+            this._setTextIfChanged(positionData.altTextName.element, name);
         }
 
-        positionData.name.element.text = nameLength > 12 ? name.slice(0, 12) + '...' : name;
+        this._setTextIfChanged(
+            positionData.name.element,
+            nameLength > 12 ? name.slice(0, 12) + '...' : name
+        );
 
         const needsHover = nameLength > 12;
 
@@ -1571,7 +1590,7 @@ PlayerManager.prototype._updateSinglePlayerBinance = function (positionData, pos
     ) {
         this._animateBinanceChange(binanceEntity, formattedValue, position);
     } else {
-        binanceEntity.element.text = formattedValue;
+        this._setTextIfChanged(binanceEntity.element, formattedValue);
     }
 
     this.previousBinanceValues[position] = formattedValue;
@@ -1613,7 +1632,7 @@ PlayerManager.prototype._updatePlayerBinance = function (positionData, playerInf
     ) {
         this._animateBinanceChange(binanceEntity, formattedValue, index);
     } else {
-        binanceEntity.element.text = formattedValue;
+        this._setTextIfChanged(binanceEntity.element, formattedValue);
     }
 
     this.previousBinanceValues[index] = formattedValue;
@@ -1844,7 +1863,7 @@ PlayerManager.prototype._animateBinanceChange = function (binanceElement, newVal
     }
 
     this._pulseScaleAnimation(binanceElement, () => {
-        binanceElement.element.text = newValue;
+        this._setTextIfChanged(binanceElement.element, newValue);
     });
 };
 
@@ -1989,7 +2008,7 @@ PlayerManager.prototype._updateCloneTableAmountText = function (cloneEntity, pri
 
     if (this.tableAmount && cloneEntity.name === this.tableAmount.name) {
         if (cloneEntity.element) {
-            cloneEntity.element.text = priceText;
+            this._setTextIfChanged(cloneEntity.element, priceText);
         }
         return;
     }
@@ -1999,7 +2018,7 @@ PlayerManager.prototype._updateCloneTableAmountText = function (cloneEntity, pri
 
         if (this.tableAmount && child.name === this.tableAmount.name) {
             if (child.element) {
-                child.element.text = priceText;
+                this._setTextIfChanged(child.element, priceText);
             }
             return;
         }
@@ -2084,7 +2103,7 @@ PlayerManager.prototype._resetPlayerUI = function () {
             positionData.sasia_e_bastit.enabled = false;
             if (positionData.sasia_e_bastit.element) {
                 positionData.sasia_e_bastit.element.opacity = 0;
-                positionData.sasia_e_bastit.element.text = '';
+                this._setTextIfChanged(positionData.sasia_e_bastit.element, '');
             }
         }
     });
@@ -2101,13 +2120,15 @@ PlayerManager.prototype._resetPlayerUI = function () {
         this.sasia_e_bastit_5.enabled = false;
         if (this.sasia_e_bastit_5.element) {
             this.sasia_e_bastit_5.element.opacity = 0;
-            this.sasia_e_bastit_5.element.text = '';
+            this._setTextIfChanged(this.sasia_e_bastit_5.element, '');
         }
     }
 };
 
 PlayerManager.prototype._resetGameState = function () {
-    this.tableAmount?.element && (this.tableAmount.element.text = '0');
+    if (this.tableAmount?.element) {
+        this._setTextIfChanged(this.tableAmount.element, '0');
+    }
     this.positionThatTableAmountGo = null;
 
     this.allInLockedPlayers.clear();

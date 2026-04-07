@@ -29,6 +29,7 @@ Rotatezandpuls.prototype.initialize = function() {
 };
 
 Rotatezandpuls.prototype.update = function(dt) {
+    if (!this.entity.enabled) return;
     // this.callRotete(dt);
     this.callScale(dt);
 };

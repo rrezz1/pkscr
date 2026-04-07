@@ -11,6 +11,13 @@ TournamentPopUpController.prototype.initialize = function() {
     this.app.on('TournamentController:UpdateCooldownNumbers', this.updateCooldown, this);
     this.app.on('TournamentController:UpdateNextRoundDesc', this.updateNextRoundDesc, this);
 };
+TournamentPopUpController.prototype._setTextIfChanged = function (element, text) {
+    if (!element) return;
+    const next = text !== undefined && text !== null ? String(text) : '';
+    if (element.text !== next) {
+        element.text = next;
+    }
+};
 TournamentPopUpController.prototype.checkTournamentState = function(isGameStateTornament) {
     if(isGameStateTornament == true){
         this.tournamentPopUp.enabled = true;
@@ -24,7 +31,10 @@ TournamentPopUpController.prototype.updateCooldown = function(timer) {
         return;
     }
     
-    this.cooldownNumbers.element.text = timer !== undefined ? timer.toString() : "00:00";
+    this._setTextIfChanged(
+        this.cooldownNumbers.element,
+        timer !== undefined ? timer.toString() : "00:00"
+    );
 };
 
 TournamentPopUpController.prototype.updateNextRoundDesc = function(nextRound) {
@@ -35,7 +45,7 @@ TournamentPopUpController.prototype.updateNextRoundDesc = function(nextRound) {
     const prefix = "Next Round: ";
     const dataText = nextRound !== undefined ? nextRound.toString() : "Starting soon";
     
-    this.nextRoundDesc.element.text = prefix + dataText;
+    this._setTextIfChanged(this.nextRoundDesc.element, prefix + dataText);
 };
 
 TournamentPopUpController.prototype.onDestroy = function() {

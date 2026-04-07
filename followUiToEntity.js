@@ -11,9 +11,21 @@ FollowUiToEntity.attributes.add('positionThreshold', {
 });
 FollowUiToEntity.attributes.add('updateIntervalMs', {
     type: 'number',
-    default: 0,
+    default: 50,
     title: 'Update Interval (ms)',
     description: '0 = every frame, >0 = throttle updates'
+});
+FollowUiToEntity.attributes.add('idleTimeoutMs', {
+    type: 'number',
+    default: 2000,
+    title: 'Idle Timeout (ms)',
+    description: 'After this idle time, switch to idle update interval'
+});
+FollowUiToEntity.attributes.add('idleUpdateIntervalMs', {
+    type: 'number',
+    default: 250,
+    title: 'Idle Update Interval (ms)',
+    description: 'Update frequency while idle'
 });
 // initialize code called once per entity
 FollowUiToEntity.prototype.initialize = function () {
@@ -22,13 +34,20 @@ FollowUiToEntity.prototype.initialize = function () {
     this._prevPos = new pc.Vec3();
     this._prevEnabled = false;
     this._accumMs = 0;
+    this._idleElapsedMs = 0;
+    this._isIdle = false;
 };
 
 // update code called every frame
 FollowUiToEntity.prototype.postUpdate = function (dt) {
-    if (this.updateIntervalMs > 0) {
-        this._accumMs += dt * 1000;
-        if (this._accumMs < this.updateIntervalMs) return;
+    const dtMs = dt * 1000;
+    const baseInterval = this.updateIntervalMs > 0 ? this.updateIntervalMs : 0;
+    const idleInterval = this.idleUpdateIntervalMs > 0 ? this.idleUpdateIntervalMs : baseInterval;
+    const effectiveInterval = this._isIdle ? idleInterval : baseInterval;
+
+    if (effectiveInterval > 0) {
+        this._accumMs += dtMs;
+        if (this._accumMs < effectiveInterval) return;
         this._accumMs = 0;
     }
     // World space position of target
@@ -39,10 +58,12 @@ FollowUiToEntity.prototype.postUpdate = function (dt) {
     this.camera.worldToScreen(worldPos, screenPos);
 
     // Check if the entity is in front of the camera
+    let changed = false;
     if (screenPos.z > 0) {
         if (!this._prevEnabled) {
             this.entity.element.enabled = true;
             this._prevEnabled = true;
+            changed = true;
         }
 
         // Take pixel ratio into account
@@ -61,11 +82,25 @@ FollowUiToEntity.prototype.postUpdate = function (dt) {
         if (dx > this.positionThreshold || dy > this.positionThreshold) {
             this.entity.setPosition(x, y, 0);
             this._prevPos.set(x, y, 0);
+            changed = true;
         }
     } else {
         if (this._prevEnabled) {
             this.entity.element.enabled = false;
             this._prevEnabled = false;
+            changed = true;
+        }
+    }
+
+    if (this.idleTimeoutMs > 0) {
+        if (changed) {
+            this._idleElapsedMs = 0;
+            this._isIdle = false;
+        } else {
+            this._idleElapsedMs += dtMs;
+            if (!this._isIdle && this._idleElapsedMs >= this.idleTimeoutMs) {
+                this._isIdle = true;
+            }
         }
     }
 };

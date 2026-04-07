@@ -146,6 +146,13 @@ PlayersFlowManager.prototype.initialize = function () {
     this.app.on('CircleTimmer:Start_rotateTheUser4Frame', this.animatePulseAndRotate, this);
 
 };
+PlayersFlowManager.prototype._setTextIfChanged = function (element, text) {
+    if (!element) return;
+    const next = text !== undefined && text !== null ? String(text) : '';
+    if (element.text !== next) {
+        element.text = next;
+    }
+};
 
 PlayersFlowManager.prototype.animatePulseAndRotate = function (index) {
     if (!this.isUser4InGame) return;
@@ -1147,12 +1154,12 @@ PlayersFlowManager.prototype.setPlayerActionBet = function (playerIndex) {
     
         if (isOhamaPlayer4) {
             if (this.player4Actions.player4Bet) {
-                this.player4Actions.player4Bet.element.text = 'Bet';
+                this._setTextIfChanged(this.player4Actions.player4Bet.element, 'Bet');
                 this.smoothFadeEntity(this.player4Actions.player4Bet, true, fadeOptions);
             }
         } else {
             if (player.playerBet) {
-                player.playerBet.element.text = 'Bet';
+                this._setTextIfChanged(player.playerBet.element, 'Bet');
                 this.smoothFadeEntity(player.playerBet, true, fadeOptions);
             }
         }
@@ -1174,12 +1181,12 @@ PlayersFlowManager.prototype.setPlayerActionCall = function (playerIndex) {
     
         if (isOhamaPlayer4) {
             if (this.player4Actions.player4Bet) {
-                this.player4Actions.player4Bet.element.text = 'Call';
+                this._setTextIfChanged(this.player4Actions.player4Bet.element, 'Call');
                 this.smoothFadeEntity(this.player4Actions.player4Bet, true, fadeOptions);
             }
         } else {
             if (player.playerBet) {
-                player.playerBet.element.text = 'Call';
+                this._setTextIfChanged(player.playerBet.element, 'Call');
                 this.smoothFadeEntity(player.playerBet, true, fadeOptions);
             }
         }
@@ -1201,12 +1208,12 @@ PlayersFlowManager.prototype.setPlayerActionRaise = function (playerIndex) {
     
         if (isOhamaPlayer4) {
             if (this.player4Actions.player4Bet) {
-                this.player4Actions.player4Bet.element.text = 'Raise';
+                this._setTextIfChanged(this.player4Actions.player4Bet.element, 'Raise');
                 this.smoothFadeEntity(this.player4Actions.player4Bet, true, fadeOptions);
             }
         } else {
             if (player.playerBet) {
-                player.playerBet.element.text = 'Raise';
+                this._setTextIfChanged(player.playerBet.element, 'Raise');
                 this.smoothFadeEntity(player.playerBet, true, fadeOptions);
             }
         }
@@ -1259,12 +1266,12 @@ PlayersFlowManager.prototype.setPlayerActionAnte = function (playerIndex) {
  
         if (isOhamaPlayer4) {
             if (this.player4Actions.player4Bet) {
-                this.player4Actions.player4Bet.element.text = 'ante';
+                this._setTextIfChanged(this.player4Actions.player4Bet.element, 'ante');
                 this.smoothFadeEntity(this.player4Actions.player4Bet, true, fadeOptions);
             }
         } else {
             if (player.playerBet) {
-                player.playerBet.element.text = 'ante';
+                this._setTextIfChanged(player.playerBet.element, 'ante');
                 this.smoothFadeEntity(player.playerBet, true, fadeOptions);
             }
         }
@@ -1286,12 +1293,12 @@ PlayersFlowManager.prototype.setPlayerActionSmallBlind = function (playerIndex) 
   
         if (isOhamaPlayer4) {
             if (this.player4Actions.player4Bet) {
-                this.player4Actions.player4Bet.element.text = 'S. B.';
+                this._setTextIfChanged(this.player4Actions.player4Bet.element, 'S. B.');
                 this.smoothFadeEntity(this.player4Actions.player4Bet, true, fadeOptions);
             }
         } else {
             if (player.playerBet) {
-                player.playerBet.element.text = 'S. B.';
+                this._setTextIfChanged(player.playerBet.element, 'S. B.');
                 this.smoothFadeEntity(player.playerBet, true, fadeOptions);
             }
         }
@@ -1314,12 +1321,12 @@ PlayersFlowManager.prototype.setPlayerActionBigBlind = function (playerIndex) {
 
         if (isOhamaPlayer4) {
             if (this.player4Actions.player4Bet) {
-                this.player4Actions.player4Bet.element.text = 'B. B.';
+                this._setTextIfChanged(this.player4Actions.player4Bet.element, 'B. B.');
                 this.smoothFadeEntity(this.player4Actions.player4Bet, true, fadeOptions);
             }
         } else {
             if (player.playerBet) {
-                player.playerBet.element.text = 'B. B.';
+                this._setTextIfChanged(player.playerBet.element, 'B. B.');
                 this.smoothFadeEntity(player.playerBet, true, fadeOptions);
             }
         }
@@ -1447,7 +1454,7 @@ PlayersFlowManager.prototype.changeStatus = function (playerIndex, status) {
             }
             
             if (statusElement?.element) {
-                statusElement.element.text = 'SIT IN';
+                this._setTextIfChanged(statusElement.element, 'SIT IN');
                 statusElement.element.color = new pc.Color(0, 1, 0); 
                 statusElement.enabled = true;
                 
@@ -1567,7 +1574,7 @@ PlayersFlowManager.prototype.changeStatus = function (playerIndex, status) {
             }
             
             if (statusElement?.element) {
-                statusElement.element.text = 'SIT OUT';
+                this._setTextIfChanged(statusElement.element, 'SIT OUT');
                 statusElement.element.color = new pc.Color(1, 0.5, 0); 
                 statusElement.enabled = true;
                 
@@ -1634,7 +1641,7 @@ PlayersFlowManager.prototype.changeStatus = function (playerIndex, status) {
             }
             
             if (statusElement?.element) {
-                statusElement.element.text = 'disconnected';
+                this._setTextIfChanged(statusElement.element, 'disconnected');
                 statusElement.element.color = new  pc.Color(1, 0, 0); 
                 statusElement.enabled = true;
                 
@@ -1700,7 +1707,7 @@ PlayersFlowManager.prototype.changeStatus = function (playerIndex, status) {
                 }
                 
                 if (statusElement?.element) {
-                    statusElement.element.text = 'connected';
+                    this._setTextIfChanged(statusElement.element, 'connected');
                     statusElement.element.color = new pc.Color(0, 1, 0); 
                     statusElement.enabled = true;
                     

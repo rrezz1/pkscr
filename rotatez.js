@@ -11,6 +11,7 @@ Rotatez.prototype.initialize = function() {
 };
 
 Rotatez.prototype.update = function(dt) {
+    if (!this.entity.enabled) return;
     this.currentAngle -= this.rotateSpeed * dt;
 
     if (this.currentAngle >= 360) {
