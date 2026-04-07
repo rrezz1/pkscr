@@ -22,6 +22,10 @@ MessageController.prototype.initialize = function () {
     this.app.on('MessageController:buttonClickedMessage', this.openMessage, this);
     this.app.on('MessageController:hidePopUp_Message', this.hidePopUPMessage, this);
 };
+MessageController.prototype.onDestroy = function () {
+    this.app.off('MessageController:buttonClickedMessage', this.openMessage, this);
+    this.app.off('MessageController:hidePopUp_Message', this.hidePopUPMessage, this);
+};
 MessageController.prototype.debounce = function(func, wait) {
    return function() {
         var context = this, args = arguments;

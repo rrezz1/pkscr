@@ -15,6 +15,18 @@ FollowUiToEntity.attributes.add('updateIntervalMs', {
     title: 'Update Interval (ms)',
     description: '0 = every frame, >0 = throttle updates'
 });
+FollowUiToEntity.attributes.add('useAdaptiveIntervals', {
+    type: 'boolean',
+    default: true,
+    title: 'Adaptive Intervals',
+    description: 'Use more aggressive intervals on Mobile/Tablet'
+});
+FollowUiToEntity.attributes.add('mobileUpdateIntervalMs', {
+    type: 'number',
+    default: 100,
+    title: 'Mobile Update Interval (ms)',
+    description: 'Update interval when device is Mobile/Tablet'
+});
 FollowUiToEntity.attributes.add('idleTimeoutMs', {
     type: 'number',
     default: 2000,
@@ -23,9 +35,15 @@ FollowUiToEntity.attributes.add('idleTimeoutMs', {
 });
 FollowUiToEntity.attributes.add('idleUpdateIntervalMs', {
     type: 'number',
-    default: 250,
+    default: 500,
     title: 'Idle Update Interval (ms)',
     description: 'Update frequency while idle'
+});
+FollowUiToEntity.attributes.add('mobileIdleUpdateIntervalMs', {
+    type: 'number',
+    default: 500,
+    title: 'Mobile Idle Update Interval (ms)',
+    description: 'Idle update interval when device is Mobile/Tablet'
 });
 // initialize code called once per entity
 FollowUiToEntity.prototype.initialize = function () {
@@ -36,6 +54,22 @@ FollowUiToEntity.prototype.initialize = function () {
     this._accumMs = 0;
     this._idleElapsedMs = 0;
     this._isIdle = false;
+    this._baseIntervals = {
+        updateIntervalMs: this.updateIntervalMs,
+        idleUpdateIntervalMs: this.idleUpdateIntervalMs
+    };
+    this._onDeviceType = (type) => {
+        if (!this.useAdaptiveIntervals) return;
+        const isMobile = type === 'Mobile' || type === 'Tablet';
+        if (isMobile) {
+            this.updateIntervalMs = this.mobileUpdateIntervalMs || this.updateIntervalMs;
+            this.idleUpdateIntervalMs = this.mobileIdleUpdateIntervalMs || this.idleUpdateIntervalMs;
+        } else {
+            this.updateIntervalMs = this._baseIntervals.updateIntervalMs;
+            this.idleUpdateIntervalMs = this._baseIntervals.idleUpdateIntervalMs;
+        }
+    };
+    this.app.on('DeviceDetector:DeviceType', this._onDeviceType, this);
 };
 
 // update code called every frame
@@ -102,6 +136,13 @@ FollowUiToEntity.prototype.postUpdate = function (dt) {
                 this._isIdle = true;
             }
         }
+    }
+};
+
+FollowUiToEntity.prototype.onDestroy = function () {
+    if (this._onDeviceType) {
+        this.app.off('DeviceDetector:DeviceType', this._onDeviceType, this);
+        this._onDeviceType = null;
     }
 };
 

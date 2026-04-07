@@ -55,6 +55,14 @@ UiButton.prototype.initialize = function () {
     this._pendingActiveActions = null;
     this._pendingPassiveActions = null;
     this._pendingContainerType = null;
+    this._canvasRect = null;
+    this._canvasRectTs = 0;
+    this._canvasRectMaxAgeMs = 250;
+    this._lastCanvasW = 0;
+    this._lastCanvasH = 0;
+    this._onWindowResize = () => {
+        this._refreshCanvasRect();
+    };
     
 
 
@@ -78,6 +86,8 @@ UiButton.prototype.initialize = function () {
     this.initializeEvents();
 
     this.updateSoundButtonDisplay(true);
+    this._refreshCanvasRect();
+    window.addEventListener('resize', this._onWindowResize);
 };
 
 
@@ -635,11 +645,15 @@ UiButton.prototype.getEntityScreenPosition = function (entity) {
         return { x: 0, y: 0 };
     }
 
-    const canvasRect = canvas.getBoundingClientRect();
-
     // Get the actual rendered canvas size
     const canvasWidth = canvas.clientWidth || canvas.width;
     const canvasHeight = canvas.clientHeight || canvas.height;
+    if (!this._canvasRect ||
+        this._lastCanvasW !== canvasWidth ||
+        this._lastCanvasH !== canvasHeight) {
+        this._refreshCanvasRect();
+    }
+    const canvasRect = this._canvasRect;
 
     // Normalize world coordinates
     const normalizedX = (worldPos.x + 1) / 2;
@@ -650,6 +664,22 @@ UiButton.prototype.getEntityScreenPosition = function (entity) {
     const y = canvasRect.top + (normalizedY * canvasHeight);
 
     return { x, y };
+};
+
+UiButton.prototype._refreshCanvasRect = function () {
+    const canvas = this.app?.graphicsDevice?.canvas;
+    if (!canvas) return;
+    this._canvasRect = canvas.getBoundingClientRect();
+    this._canvasRectTs = Date.now();
+    this._lastCanvasW = canvas.clientWidth || canvas.width;
+    this._lastCanvasH = canvas.clientHeight || canvas.height;
+};
+
+UiButton.prototype.onDestroy = function () {
+    if (this._onWindowResize) {
+        window.removeEventListener('resize', this._onWindowResize);
+        this._onWindowResize = null;
+    }
 };
 
 

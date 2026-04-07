@@ -19,6 +19,8 @@ CircleTimer.prototype.postInitialize = function () {
     this.tourSeconds;
     this._element = this.entity.element;
     this._element.material = this._element.material.clone();
+    this._baseColor = new pc.Color(1, 1, 0);
+    this._timerColor = new pc.Color(1, 1, 0);
 
     this.app.on('PlayerFlowManager:Activate circle', this.activateCircle, this);
     this.app.on('GameManager:SetTimeToUSerTImer', this.defineTimer, this);
@@ -42,7 +44,7 @@ CircleTimer.prototype.activateCircle = function (playerIndex) {
         this.setProgress(0);
 
         if (this.circleImage && this.circleImage.element) {
-            this.circleImage.element.color = new pc.Color(1, 1, 0);
+            this.circleImage.element.color = this._baseColor;
         }
     } else {
         this.startCircle = false;
@@ -55,10 +57,6 @@ CircleTimer.prototype.setProgress = function (value) {
     value = pc.math.clamp(value, 0, 1);
     this._progress = value;
 
-    if (this.circleImage && this.circleImage.element) {
-        this.circleImage.element.color = new pc.Color(1, 1, 0);
-    }
-
     if (this._element) {
         this._element.material.alphaTest = value + 0.001;
         this._element.material.update();
@@ -66,8 +64,6 @@ CircleTimer.prototype.setProgress = function (value) {
 
     if (this.circleImage && this.circleImage.element) {
         const t = pc.math.clamp(value * 2, 0, 1);
-        // PERF: reuse color object
-        if (!this._timerColor) this._timerColor = new pc.Color(1, 1, 0);
         this._timerColor.r = 1.0;
         this._timerColor.g = 1.0 - t;
         this._timerColor.b = 0;

@@ -1780,6 +1780,9 @@ PlayerManager.prototype._animateOriginalElementColor = function (entityElement, 
     let t = 0;
     const duration = 1.2;
     const self = this;
+    const tmpColor = new pc.Color();
+    const tmpOutline = new pc.Color();
+    const tmpReturn = new pc.Color();
 
     function colorAnim(dt) {
         t += dt;
@@ -1787,16 +1790,17 @@ PlayerManager.prototype._animateOriginalElementColor = function (entityElement, 
 
         const easeProgress = 1 - Math.pow(1 - progress, 2);
 
-        // color 
-        const currentColor = new pc.Color(
-            pc.math.lerp(originalColor.r, targetColor.r, easeProgress),
-            pc.math.lerp(originalColor.g, targetColor.g, easeProgress),
-            pc.math.lerp(originalColor.b, targetColor.b, easeProgress)
-        );
+        // color
+        tmpColor.r = pc.math.lerp(originalColor.r, targetColor.r, easeProgress);
+        tmpColor.g = pc.math.lerp(originalColor.g, targetColor.g, easeProgress);
+        tmpColor.b = pc.math.lerp(originalColor.b, targetColor.b, easeProgress);
 
         // pulse
         const brightness = 1 + Math.sin(progress * Math.PI * 2) * 0.08;
-        entityElement.color = currentColor.clone().mulScalar(brightness);
+        tmpColor.r *= brightness;
+        tmpColor.g *= brightness;
+        tmpColor.b *= brightness;
+        entityElement.color = tmpColor;
 
         //  glow effect
         if (entityElement.outlineThickness !== undefined) {
@@ -1804,7 +1808,10 @@ PlayerManager.prototype._animateOriginalElementColor = function (entityElement, 
         }
 
         if (entityElement.outlineColor !== undefined) {
-            entityElement.outlineColor = currentColor.clone().mulScalar(1.1);
+            tmpOutline.r = tmpColor.r * 1.1;
+            tmpOutline.g = tmpColor.g * 1.1;
+            tmpOutline.b = tmpColor.b * 1.1;
+            entityElement.outlineColor = tmpOutline;
         }
 
         if (progress >= 1) {
@@ -1817,17 +1824,15 @@ PlayerManager.prototype._animateOriginalElementColor = function (entityElement, 
                     returnT += dt;
                     const returnProgress = Math.min(returnT / returnDuration, 1);
 
-                    const returnColor = new pc.Color(
-                        pc.math.lerp(targetColor.r, originalColor.r, returnProgress),
-                        pc.math.lerp(targetColor.g, originalColor.g, returnProgress),
-                        pc.math.lerp(targetColor.b, originalColor.b, returnProgress)
-                    );
+                    tmpReturn.r = pc.math.lerp(targetColor.r, originalColor.r, returnProgress);
+                    tmpReturn.g = pc.math.lerp(targetColor.g, originalColor.g, returnProgress);
+                    tmpReturn.b = pc.math.lerp(targetColor.b, originalColor.b, returnProgress);
 
-                    entityElement.color = returnColor;
+                    entityElement.color = tmpReturn;
 
-                    if (entityElement.outlineThickness !== undefined) {
-                        entityElement.outlineThickness = 0.05 * (1.1 - returnProgress * 0.1);
-                    }
+                        if (entityElement.outlineThickness !== undefined) {
+                            entityElement.outlineThickness = 0.05 * (1.1 - returnProgress * 0.1);
+                        }
 
                     if (returnProgress >= 1) {
                         entityElement.color = originalColor;
@@ -1961,7 +1966,7 @@ PlayerManager.prototype._startSequentialMovement = function (clones) {
                 progress: 0,
                 duration: 0.8,
                 toPot: false,
-                disableAfterFinish: false,
+                disableAfterFinish: true,
                 onComplete: function () {
                     if (cloneData.entity && cloneData.entity.enabled) {
                         // Check if priceAmount exists before calling toString
@@ -1970,10 +1975,22 @@ PlayerManager.prototype._startSequentialMovement = function (clones) {
                             : '0';
                         self.rewardChip(cloneData.winnerIndex, priceAmount);
                     }
+                    self._removeTableAmountClone(cloneData.entity);
                 }
             });
         }, 0);
     });
+};
+
+PlayerManager.prototype._removeTableAmountClone = function (clone) {
+    if (!clone) return;
+    if (this.tableAmountClones && this.tableAmountClones.length > 0) {
+        const idx = this.tableAmountClones.indexOf(clone);
+        if (idx !== -1) this.tableAmountClones.splice(idx, 1);
+    }
+    if (clone.destroy) {
+        clone.destroy();
+    }
 };
 
 PlayerManager.prototype._createTableAmountClone = function (startPos, index = 0, initialText = "0") {

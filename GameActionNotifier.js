@@ -10,6 +10,19 @@ GameActionNotifier.prototype.initialize = function () {
     //     this.showMessage('FULL HOUSE');
     // }, 5000);
 };
+GameActionNotifier.prototype.onDestroy = function () {
+    this.app.off('GameActionNotifier:show', this.showMessage, this);
+    this.app.off('GameActionNotifier:stateShow', this.messageState, this);
+    this.app.off('GameManager_RESTARTSCRIPT', this.resetScript, this);
+    if (this._hideTimer) {
+        clearTimeout(this._hideTimer);
+        this._hideTimer = null;
+    }
+    if (this.root && this.root.parentNode) {
+        this.root.parentNode.removeChild(this.root);
+    }
+    this.root = null;
+};
 
 GameActionNotifier.prototype._createUI = function () {
     if (this.root) return;

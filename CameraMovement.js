@@ -15,7 +15,7 @@ CameraMovement.prototype.initialize = function() {
     
     const targetData = this.getCurrentCamPosRot();
     this.targetCamPos = targetData.position;
-    this.targetCamRot = targetData.rot;
+    this.targetCamRot = targetData.rotation;
 
     // PERF: scratch objects — no per-frame heap allocation in manualUpdate
     this._scratchPos = new pc.Vec3();
@@ -603,20 +603,21 @@ CameraMovement.prototype.handleScreenResize = function() {
 };
 
 CameraMovement.prototype.adjustCameraToCurrentScale = function() {
-    const targetData = this.getCurrentCamPosRot();
-    
     const currentPos = this.mainCamera.getLocalPosition();
     const currentRot = this.mainCamera.getLocalRotation();
+    const targetPos = this.targetCamPos || this.getCurrentCamPosRot().position;
+    const targetRot = this.targetCamRot || this.getCurrentCamPosRot().rotation;
     
-    const posDiff = currentPos.distance(targetData.position);
-    const rotDiff = Math.abs(currentRot.toEulerAngles().x - targetData.rotation.toEulerAngles().x);
+    const posDiff = currentPos.distance(targetPos);
+    const dot = Math.min(1, Math.abs(currentRot.dot(targetRot)));
+    const rotDiff = 2 * Math.acos(dot) * pc.math.RAD_TO_DEG;
     
     if (posDiff > 0.1 || rotDiff > 1) {
         
         this.startCamPos = currentPos.clone();
         this.startCamRot = currentRot.clone();
-        this.targetCamPos = targetData.position;
-        this.targetCamRot = targetData.rotation;
+        this.targetCamPos = targetPos;
+        this.targetCamRot = targetRot;
         
         this.camLerpProgress = 0;
         this.camLerpDuration = 0.5; 

@@ -9,7 +9,6 @@ NotificationsController.prototype.initialize = function() {
     
     this.initContainer();
 };
-
 NotificationsController.prototype.initContainer = function() {
     this.container = document.createElement('div');
     this.container.className = 'poker-border-notifications';
@@ -41,6 +40,7 @@ NotificationsController.prototype.newNotification = function(message, timer = 9)
     const notificationData = {
         id: notificationId,
         element: notification,
+        timerLine: timerLine,
         timeoutId: null
     };
     
@@ -48,6 +48,9 @@ NotificationsController.prototype.newNotification = function(message, timer = 9)
     
     setTimeout(() => {
         notification.classList.add('visible');
+        // Reset any previous animation state before starting a new one
+        timerLine.style.animation = 'none';
+        void timerLine.offsetWidth;
         timerLine.style.animation = `border-timer-progress ${timer}s linear forwards`;
     }, 10);
     
@@ -176,7 +179,8 @@ NotificationsController.prototype.removeNotification = function(notificationId) 
     
     const notification = this.notifications[index];
     const element = notification.element;
-    
+    const timerLine = notification.timerLine;
+
     element.classList.remove('visible');
     element.classList.add('hiding');
     
@@ -189,6 +193,9 @@ NotificationsController.prototype.removeNotification = function(notificationId) 
     
     if (notification.timeoutId) {
         clearTimeout(notification.timeoutId);
+    }
+    if (timerLine) {
+        timerLine.style.animation = 'none';
     }
 };
 
