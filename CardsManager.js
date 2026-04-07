@@ -133,45 +133,46 @@ var CardsManager = pc.createScript('cardsManager');
         this.app.on('CardsManager:TeleportCardsToNewPositions', this.teleportCardsToNewPositions, this);
     };
 CardsManager.prototype.teleportCardsToNewPositions = function (oldMap, newMap) {
-    var mainSlot = this._getMainPlayerSlot();
-
-    var oldFirst  = this.firstCards.slice();
-    var oldSecond = this.secondCards.slice();
-    var oldThird  = this.thirdCards.slice();
-    var oldFourth = this.fourthCards.slice();
+    // Nëse nuk ka asnjë kartë aktive — mos bëj asgjë
+    var hasAnyCard = false;
+    var checkArrays = [this.firstCards, this.secondCards, this.thirdCards, this.fourthCards];
+    for (var ci = 0; ci < checkArrays.length && !hasAnyCard; ci++) {
+        var arr = checkArrays[ci];
+        if (!arr) continue;
+        for (var ki = 0; ki < arr.length; ki++) {
+            if (arr[ki] && arr[ki].entity) { hasAnyCard = true; break; }
+        }
+    }
+    if (!hasAnyCard) return;
 
     var newFirst  = new Array(9).fill(null);
     var newSecond = new Array(9).fill(null);
     var newThird  = new Array(9).fill(null);
     var newFourth = new Array(9).fill(null);
 
-    // main slot
-    newFirst[mainSlot]  = oldFirst[mainSlot];
-    newSecond[mainSlot] = oldSecond[mainSlot];
-    newThird[mainSlot]  = oldThird[mainSlot];
-    newFourth[mainSlot] = oldFourth[mainSlot];
+    var cardArrays = [
+        { old: this.firstCards,  new: newFirst,  num: 1 },
+        { old: this.secondCards, new: newSecond, num: 2 },
+        { old: this.thirdCards,  new: newThird,  num: 3 },
+        { old: this.fourthCards, new: newFourth, num: 4 }
+    ];
 
-    var activeSeats = window.GameManager.getSeatPosition(window.GameManager.seatsArray);
-
-    for (var serverPos = 0; serverPos < activeSeats.length; serverPos++) {
-        var oldUiSlot = oldMap[serverPos]; // ku ishte 
-        var newUiSlot = newMap[serverPos]; // ku duhet me kan
+    for (var serverPos in oldMap) {
+        var oldUiSlot = oldMap[serverPos];
+        var newUiSlot = newMap[serverPos];
 
         if (oldUiSlot === undefined || newUiSlot === undefined) continue;
-        if (newUiSlot === mainSlot) continue; // osht mir
-
-        var cardArrays = [
-            { old: oldFirst,  new: newFirst,  num: 1 },
-            { old: oldSecond, new: newSecond, num: 2 },
-            { old: oldThird,  new: newThird,  num: 3 },
-            { old: oldFourth, new: newFourth, num: 4 }
-        ];
 
         for (var j = 0; j < cardArrays.length; j++) {
-            var cardData = cardArrays[j].old[oldUiSlot]; // merr nga slot-i i vjetër UI
+            var cardData = cardArrays[j].old[oldUiSlot];
+
             if (!cardData || !cardData.entity) continue;
 
-            // teleport 
+            if (oldUiSlot === newUiSlot) {
+                cardArrays[j].new[newUiSlot] = cardData;
+                continue;
+            }
+
             var newPos = this.getCardTargetPosition(newUiSlot, cardArrays[j].num, false);
             var newRot = this.getCardTargetRotation(newUiSlot, cardArrays[j].num, false);
 
@@ -180,7 +181,7 @@ CardsManager.prototype.teleportCardsToNewPositions = function (oldMap, newMap) {
             cardData.targetPos = newPos;
             cardData.targetRot = newRot;
 
-            cardArrays[j].new[newUiSlot] = cardData; // sloti ri
+            cardArrays[j].new[newUiSlot] = cardData;
         }
     }
 
@@ -188,7 +189,6 @@ CardsManager.prototype.teleportCardsToNewPositions = function (oldMap, newMap) {
     this.secondCards = newSecond;
     this.thirdCards  = newThird;
     this.fourthCards = newFourth;
-
 };
 CardsManager.prototype.instantHoleCardDeal = function (payload) {
     var cardCount = payload.count || 0;
@@ -481,7 +481,7 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
         if (this.isCardsStillProcesing) return;
         this.isCardsStillProcesing = true;
 
-        var mainSlot = this._getMainPlayerSlot();
+        var mainSlot = this.window.GameManager.getMainSeat(window.GameManager.seatsArray);
         var activeSeats = window.GameManager.getSeatPosition(window.GameManager.seatsArray);
 
         for (let i = 0; i < activeSeats.length; i++) {
@@ -490,7 +490,7 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
 
             if (!this.isValidPlayer(playerInfo)) continue;
 
-            if (physicalSlot === mainSlot) continue;
+            if (physicalSlot == mainSlot) continue;
 
             this.createPlayerCards(physicalSlot, count);
         }
@@ -559,7 +559,7 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
     CardsManager.prototype.processHoleCardBatch = function (cards, totalCount) {
         var mainSlot = this._getMainPlayerSlot();
 
-        this.cloneAllCards(totalCount);
+        this.cloneAllCards(totalCount,mainSlot);
 
         this.currentPhase = 'playerCards';
 
@@ -1335,11 +1335,13 @@ CardsManager.prototype.queueHoleCardDeal = function (payload) {
         const moveDuration = 0.7;
         let elapsed = 0;
 
-        const allCards = []
-            .concat(this.firstCards.map(c => c?.entity).filter(Boolean))
-            .concat(this.secondCards.map(c => c?.entity).filter(Boolean))
-            .concat(this.tableCards ? this.tableCards.map(c => c?.entity).filter(Boolean) : [])
-            .filter(c => !!c);
+    const allCards = []
+        .concat(this.firstCards.map(c => c?.entity).filter(Boolean))
+        .concat(this.secondCards.map(c => c?.entity).filter(Boolean))
+        .concat(this.thirdCards ? this.thirdCards.map(c => c?.entity).filter(Boolean) : [])
+        .concat(this.fourthCards ? this.fourthCards.map(c => c?.entity).filter(Boolean) : [])
+        .concat(this.tableCards ? this.tableCards.map(c => c?.entity).filter(Boolean) : [])
+        .filter(c => !!c);
 
         if (allCards.length === 0) return;
 
